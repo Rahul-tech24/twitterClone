@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import authRoutes from "./routes/auth.routes.js"; 
 import userRoutes from "./routes/user.routes.js";
 import postRoutes from "./routes/post.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 import dotenv from "dotenv";
 import connectDB from "./db/db.js";
@@ -36,9 +37,12 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
-app.listen(8000, () => {
+const PORT = process.env.PORT || 8000;
+
+app.listen(PORT, () => {
     connectDB();
-    console.log("Server running on port 8000");
+    console.log(`Server running on port ${PORT}`);
 });

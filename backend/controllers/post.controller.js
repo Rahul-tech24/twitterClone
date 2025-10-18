@@ -2,7 +2,7 @@ import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
 import { v2 as cloudinary } from "cloudinary";
 import Notification from "../models/notification.model.js";
-import { get } from "mongoose";
+
 
 
 const createPost = async (req, res) => {
