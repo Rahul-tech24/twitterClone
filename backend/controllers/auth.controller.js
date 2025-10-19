@@ -1,6 +1,6 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import generateTokenAndSendResponse from "../lib/utils/generateToken.js";
+import generateTokenAndSetCookie from "../lib/utils/generateToken.js";
 
 const signup = async (req, res) => {
     try {
@@ -30,8 +30,8 @@ const signup = async (req, res) => {
             password: hashedPassword,
         });
         if (newUser) {
-            generateTokenAndSendResponse(newUser._id, res);
             await newUser.save();
+            generateTokenAndSetCookie(newUser._id, res);
             res.status(201).json(
                 {
                     _id: newUser._id,
@@ -48,7 +48,8 @@ const signup = async (req, res) => {
             return res.status(400).json({ message: "User not created" });
         }
     } catch (error) {
-        console.log(error);
+        console.log("Error in signup controller:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };
 
@@ -64,10 +65,9 @@ const login = async (req, res) => {
         if (!isPasswordCorrect || !user) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
-        if (user) {
-            generateTokenAndSendResponse(user._id, res);
-        }
-         res.status(200).json({
+        
+        generateTokenAndSetCookie(user._id, res);
+        res.status(200).json({
             _id: user._id,
             username: user.username,
             fullName: user.fullName,
@@ -76,9 +76,10 @@ const login = async (req, res) => {
             coverImg: user.coverImg,
             followers: user.followers,
             following: user.following
-        })
+        });
     } catch (error) {
-        console.log(error);
+        console.log("Error in login controller:", error);
+        res.status(500).json({ error: "Internal server error" });
     }   
 };
 
@@ -88,7 +89,8 @@ const logout = (req, res) => {
         res.clearCookie("jwt");
         res.status(200).json({ message: "Logout successful" });
     } catch (error) {
-        console.log(error);
+        console.log("Error in logout controller:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 
 };
@@ -99,7 +101,8 @@ const getUser = async (req, res) => {
         res.status(200).json(user);
        
     } catch (error) {
-        console.log(error);
+        console.log("Error in getUser controller:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 }
 
