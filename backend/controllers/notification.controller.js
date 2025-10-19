@@ -48,3 +48,4 @@ const deleteNotification = async (req, res) => {
 };
 
 export { getNotifications, deleteNotifications, deleteNotification };
+
