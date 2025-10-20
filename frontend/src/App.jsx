@@ -56,7 +56,7 @@ function App() {
         {authUser && <RightPanel />}
         <Toaster />
       </div>
-         
+          
     </>
   )
 }
