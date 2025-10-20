@@ -2,6 +2,7 @@ import Post from "./Post";
 import PostSkeleton from "../skeletons/PostSkeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { getApiUrl } from "../../utils/api";
 
 const Posts = ({feedType,username, userId}) => {
 	
@@ -27,7 +28,7 @@ const Posts = ({feedType,username, userId}) => {
 		queryKey: ["posts"],
 		queryFn: async () => {
 			try {
-				const res = await fetch(POST_ENDPOINT);
+				const res = await fetch(getApiUrl(POST_ENDPOINT));
 				if (!res.ok) throw new Error("Failed to fetch posts");
 				return res.json();
 			} catch (error) {

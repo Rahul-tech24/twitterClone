@@ -241,4 +241,29 @@ const getUserPosts = async (req, res) => {
     }
 };
 
-export { createPost, deletePost, commentOnPost, likeUnlikePost, getAllPosts, getLikedPosts, getFollowingPosts, getUserPosts };
+const getPostById = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        
+        const post = await Post.findById(postId)
+            .populate({
+                path: "user",
+                select: "-password -email"
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password -email"
+            });
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        res.status(200).json(post);
+    } catch (error) {
+        console.error("Error fetching post:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export { createPost, deletePost, commentOnPost, likeUnlikePost, getAllPosts, getLikedPosts, getFollowingPosts, getUserPosts, getPostById };

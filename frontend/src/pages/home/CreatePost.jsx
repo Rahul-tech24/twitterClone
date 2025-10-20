@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { getApiUrl } from "../../utils/api";
 
 const CreatePost = () => {
 	const [text, setText] = useState("");
@@ -17,7 +18,7 @@ const CreatePost = () => {
 		queryKey: ["authUser"],
 		queryFn: async () => {
 			try {
-				const response = await fetch('/api/auth/user', { credentials: 'include' });
+				const response = await fetch(getApiUrl('/api/auth/user'), { credentials: 'include' });
 				const data = await response.json();
 				if (!response.ok) return null;
 				if (data.error) return null;
@@ -33,7 +34,7 @@ const CreatePost = () => {
 
 	const { mutate: createPost, isPending, isError } = useMutation({
 		mutationFn: async ({ text, img }) => {
-			const res = await fetch("/api/posts/create", {
+			const res = await fetch(getApiUrl("/api/posts/create"), {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

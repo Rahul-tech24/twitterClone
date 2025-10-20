@@ -8,20 +8,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { getApiUrl } from "../../utils/api";
 
 const NotificationPage = () => {
 	const queryClient = useQueryClient();
 	const { data: notifications, isLoading } = useQuery({
 		queryKey: ["notifications"],
 		queryFn: async () => {
-			const res = await fetch("/api/notifications");
+			const res = await fetch(getApiUrl("/api/notifications"));
 			if (!res.ok) throw new Error("Failed to fetch notifications");
 			return res.json();
 		},
 	});
 	const {mutate:deleteNotifications } = useMutation({
 		mutationFn: async () => {
-			const res = await fetch("/api/notifications", {
+			const res = await fetch(getApiUrl("/api/notifications"), {
 				method: "DELETE",
 			});
 			if (!res.ok) throw new Error("Failed to delete notifications");

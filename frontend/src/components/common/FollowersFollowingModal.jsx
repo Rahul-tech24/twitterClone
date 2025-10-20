@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
 import useFollow from "../../hooks/useFollow";
 import LoadingSpinner from "./LoadingSpinner";
+import { getApiUrl } from "../../utils/api";
 
 const FollowersFollowingModal = ({ isOpen, onClose, username, type, authUser }) => {
 	const { data: users, isLoading } = useQuery({
 		queryKey: [type, username],
 		queryFn: async () => {
-			const res = await fetch(`/api/users/${type}/${username}`, {
+			const res = await fetch(getApiUrl(`/api/users/${type}/${username}`), {
 				credentials: "include",
 			});
 			const data = await res.json();

@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import LoadingSpinner from './components/common/LoadingSpinner.jsx';
 import { Navigate } from 'react-router-dom';
 import NotificationsPage from './pages/notification/NotificationPage.jsx';
+import PostDetailPage from './pages/post/PostDetailPage.jsx';
+import { getApiUrl } from './utils/api.js';
 
 
 
@@ -21,7 +23,7 @@ function App() {
     queryKey: ['authUser'],
       queryFn: async () => {
       try { 
-        const response = await fetch('/api/auth/user', { credentials: 'include' });
+        const response = await fetch(getApiUrl('/api/auth/user'), { credentials: 'include' });
         const data = await response.json();
         if (!response.ok) return null;
         if (data.error) return null;
@@ -51,6 +53,7 @@ function App() {
           <Route path="/signup" element={!authUser ? <SignupPage /> : <Navigate to="/" />} />
           <Route path="/notifications" element={authUser ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/profile/:username" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="/post/:id" element={authUser ? <PostDetailPage /> : <Navigate to="/login" />} />
         </Routes>
         {authUser && <RightPanel />}
         <Toaster />

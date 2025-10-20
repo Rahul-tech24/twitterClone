@@ -15,6 +15,7 @@ import { formatMemberSinceDate } from "../../utils/date";
 
 import useFollow from "../../hooks/useFollow";
 import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
+import { getApiUrl } from "../../utils/api";
 
 const ProfilePage = () => {
 	const [coverImg, setCoverImg] = useState(null);
@@ -33,7 +34,7 @@ const ProfilePage = () => {
 		queryKey: ["authUser"],
 		queryFn: async () => {
 			try {
-				const response = await fetch('/api/auth/user', { credentials: 'include' });
+				const response = await fetch(getApiUrl('/api/auth/user'), { credentials: 'include' });
 				const data = await response.json();
 				if (!response.ok) return null;
 				if (data.error) return null;
@@ -54,7 +55,7 @@ const ProfilePage = () => {
 	} = useQuery({
 		queryKey: ["userProfile", username],
 		queryFn: async () => {
-			const res = await fetch(`/api/users/profile/${username}`);
+			const res = await fetch(getApiUrl(`/api/users/profile/${username}`));
 			const data = await res.json();
 			if (!res.ok) {
 				throw new Error(data.error || data.message || "User not found");

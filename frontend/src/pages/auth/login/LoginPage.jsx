@@ -8,6 +8,7 @@ import { MdPassword } from "react-icons/md";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { getApiUrl } from "../../../utils/api";
 
 const LoginPage = () => {
 	const [formData, setFormData] = useState({
@@ -18,7 +19,7 @@ const LoginPage = () => {
 	
 	const { mutate, isError: isMutationError, error, isPending } = useMutation({
 		mutationFn: async ({ username, password }) => {
-			const response = await fetch("/api/auth/login", {
+			const response = await fetch(getApiUrl("/api/auth/login"), {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

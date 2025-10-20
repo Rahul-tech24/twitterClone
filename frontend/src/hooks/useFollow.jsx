@@ -2,6 +2,7 @@ import React from 'react'
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { getApiUrl } from "../utils/api";
 
  const useFollow = () => {
 
@@ -9,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 
   const { mutate: follow, isPending } = useMutation({
     mutationFn: async (userId) => {
-      const res = await fetch(`/api/users/follow/${userId}`, {
+      const res = await fetch(getApiUrl(`/api/users/follow/${userId}`), {
         method: "POST",
       });
       const data = await res.json();
