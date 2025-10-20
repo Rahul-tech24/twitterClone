@@ -12,12 +12,18 @@ import { useMutation } from "@tanstack/react-query";
       const res = await fetch(`/api/users/follow/${userId}`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Failed to follow user");
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to follow user");
+      return data;
       },
     onSuccess: () => {
+        // Invalidate all relevant queries to update UI
         queryClient.invalidateQueries({ queryKey: ["authUser"] });
         queryClient.invalidateQueries({ queryKey: ["suggestedUsers"] });
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+    },
+    onError: (error) => {
+        console.error("Error following user:", error);
     }
   });
 

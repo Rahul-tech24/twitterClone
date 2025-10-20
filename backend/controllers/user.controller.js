@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import Post from "../models/post.model.js";
 import bcrypt from "bcryptjs";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -6,13 +7,23 @@ const getUserProfile = async (req, res) => {
     try {
         const { username } = req.params;
         const user = await User.findOne({ username }).select("-password");
-        if (user) {
-            res.status(200).json(user);
-        } else {
-            res.status(404).json({ message: "User not found" });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
         }
+        
+        // Get actual post count for this user
+        const postCount = await Post.countDocuments({ user: user._id });
+        
+        // Add post count to user object
+        const userWithPostCount = {
+            ...user.toObject(),
+            postCount
+        };
+        
+        res.status(200).json(userWithPostCount);
     } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
+        console.error("Error in getUserProfile:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 }
 
@@ -73,6 +84,44 @@ const getSuggestedUsers = async (req, res) => {
     }
 }
 
+const getFollowers = async (req, res) => {
+    try {
+        const { username } = req.params;
+        const user = await User.findOne({ username }).populate({
+            path: "followers",
+            select: "-password -email -bio -link -coverImg -likedPosts -createdAt -updatedAt"
+        });
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        res.status(200).json(user.followers);
+    } catch (error) {
+        console.error("Error in getFollowers:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+const getFollowing = async (req, res) => {
+    try {
+        const { username } = req.params;
+        const user = await User.findOne({ username }).populate({
+            path: "following",
+            select: "-password -email -bio -link -coverImg -likedPosts -createdAt -updatedAt"
+        });
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        res.status(200).json(user.following);
+    } catch (error) {
+        console.error("Error in getFollowing:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 const updateUser = async (req, res) => {
         const { username, fullName, email, currentPassword, newPassword, bio, link } = req.body;
         let { profileImg, coverImg } = req.body;
@@ -81,16 +130,37 @@ const updateUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
            }
+           
+           // Check if username is being changed and if it's already taken
+           if (username && username !== user.username) {
+               const existingUser = await User.findOne({ username });
+               if (existingUser) {
+                   return res.status(400).json({ message: "Username is already taken" });
+               }
+           }
+           
+           // Check if email is being changed and if it's already taken
+           if (email && email !== user.email) {
+               const existingEmail = await User.findOne({ email });
+               if (existingEmail) {
+                   return res.status(400).json({ message: "Email is already taken" });
+               }
+           }
+           
+           // Password update validation
            if (newPassword && currentPassword) {
             const isPasswordCorrect = await bcrypt.compare(currentPassword, user.password);
             if (!isPasswordCorrect) {
-                return res.status(400).json({ message: "Incorrect password" });
+                return res.status(400).json({ message: "Current password is incorrect" });
+            }
+            if (newPassword.length < 6) {
+                return res.status(400).json({ message: "New password must be at least 6 characters" });
             }
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(newPassword, salt);
             user.password = hashedPassword;
-           } else {
-            return res.status(400).json({ message: "Current password is required" });
+           } else if (newPassword || currentPassword) {
+            return res.status(400).json({ message: "Both current password and new password are required" });
            }
 
            if (profileImg) {
@@ -114,17 +184,19 @@ const updateUser = async (req, res) => {
            user.username = username || user.username;
            user.fullName = fullName || user.fullName;
            user.email = email || user.email;
-           user.bio = bio || user.bio;
-           user.link = link || user.link;
+           user.bio = bio !== undefined ? bio : user.bio;
+           user.link = link !== undefined ? link : user.link;
            user.profileImg = profileImg || user.profileImg;
            user.coverImg = coverImg || user.coverImg;
+           
            await user.save();
-           user.password = null ;
-           return res.status(200).json({ message: "User updated successfully", user });
+           user.password = null;
+           return res.status(200).json(user);
          
          } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
+        console.error("Error updating user:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 }
 
-export { getUserProfile, followUnfollowUser, getSuggestedUsers, updateUser }; 
+export { getUserProfile, followUnfollowUser, getSuggestedUsers, updateUser, getFollowers, getFollowing }; 

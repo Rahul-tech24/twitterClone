@@ -38,8 +38,16 @@ app.use(express.static('public'));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-    res.send("Hello World");
+    res.send("Twitter Clone API is running! 🚀");
 })
+
+app.get("/health", (req, res) => {
+    res.status(200).json({ 
+        status: "ok", 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

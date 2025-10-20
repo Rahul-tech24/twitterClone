@@ -25,7 +25,6 @@ function App() {
         const data = await response.json();
         if (!response.ok) return null;
         if (data.error) return null;
-        console.log(data ,"auth user data");
         return data;
         
       } catch (error) {

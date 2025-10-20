@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const EditProfileModal = ({ authUser }) => {
@@ -13,6 +14,7 @@ const EditProfileModal = ({ authUser }) => {
 	});
 
 	const { updateProfile, isUpdatingProfile } = useUpdateUserProfile();
+	const navigate = useNavigate();
 
 	const handleInputChange = (e) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -45,9 +47,23 @@ const EditProfileModal = ({ authUser }) => {
 					<h3 className='font-bold text-lg my-3'>Update Profile</h3>
 					<form
 						className='flex flex-col gap-4'
-						onSubmit={(e) => {
+						onSubmit={async (e) => {
 							e.preventDefault();
-							updateProfile(formData);
+							try {
+								const oldUsername = authUser.username;
+								const updatedUser = await updateProfile(formData);
+								
+								// Close modal first
+								document.getElementById("edit_profile_modal").close();
+								
+								// If username changed, navigate to new profile URL
+								if (updatedUser && updatedUser.username && updatedUser.username !== oldUsername) {
+									// Use replace to avoid keeping old URL in history
+									navigate(`/profile/${updatedUser.username}`, { replace: true });
+								}
+							} catch {
+								// Error handled by mutation onError
+							}
 						}}
 					>
 						<div className='flex flex-wrap gap-2'>
@@ -58,6 +74,7 @@ const EditProfileModal = ({ authUser }) => {
 								value={formData.fullName}
 								name='fullName'
 								onChange={handleInputChange}
+								disabled={isUpdatingProfile}
 							/>
 							<input
 								type='text'
@@ -66,6 +83,7 @@ const EditProfileModal = ({ authUser }) => {
 								value={formData.username}
 								name='username'
 								onChange={handleInputChange}
+								disabled={isUpdatingProfile}
 							/>
 						</div>
 						<div className='flex flex-wrap gap-2'>
@@ -76,6 +94,7 @@ const EditProfileModal = ({ authUser }) => {
 								value={formData.email}
 								name='email'
 								onChange={handleInputChange}
+								disabled={isUpdatingProfile}
 							/>
 							<textarea
 								placeholder='Bio'
@@ -83,6 +102,7 @@ const EditProfileModal = ({ authUser }) => {
 								value={formData.bio}
 								name='bio'
 								onChange={handleInputChange}
+								disabled={isUpdatingProfile}
 							/>
 						</div>
 						<div className='flex flex-wrap gap-2'>
@@ -93,6 +113,8 @@ const EditProfileModal = ({ authUser }) => {
 								value={formData.currentPassword}
 								name='currentPassword'
 								onChange={handleInputChange}
+								disabled={isUpdatingProfile}
+								autoComplete="current-password"
 							/>
 							<input
 								type='password'
@@ -101,6 +123,8 @@ const EditProfileModal = ({ authUser }) => {
 								value={formData.newPassword}
 								name='newPassword'
 								onChange={handleInputChange}
+								disabled={isUpdatingProfile}
+								autoComplete="new-password"
 							/>
 						</div>
 						<input
@@ -110,8 +134,13 @@ const EditProfileModal = ({ authUser }) => {
 							value={formData.link}
 							name='link'
 							onChange={handleInputChange}
+							disabled={isUpdatingProfile}
 						/>
-						<button className='btn btn-primary rounded-full btn-sm text-white'>
+						<button 
+							className='btn btn-primary rounded-full btn-sm text-white'
+							type='submit'
+							disabled={isUpdatingProfile}
+						>
 							{isUpdatingProfile ? "Updating..." : "Update"}
 						</button>
 					</form>

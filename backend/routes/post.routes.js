@@ -8,7 +8,7 @@ import protectRoute from "../middleware/protectRoute.js";
 
 router.get("/all", protectRoute, getAllPosts);
 router.get("/likes/:id", protectRoute, getLikedPosts);
-router.get("/following/:id", protectRoute, getFollowingPosts);
+router.get("/following", protectRoute, getFollowingPosts);
 router.get("/user/:username", protectRoute, getUserPosts);
 router.post("/create", protectRoute, createPost);
 

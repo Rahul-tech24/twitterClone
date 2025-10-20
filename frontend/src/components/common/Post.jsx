@@ -15,47 +15,54 @@ import { formatPostDate } from "../../utils/date";
 const Post = ({ post }) => {
 	const [comment, setComment] = useState("");
 
-	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+	const { data: authUser } = useQuery({
+		queryKey: ["authUser"],
+		queryFn: async () => {
+			try {
+				const response = await fetch('/api/auth/user', { credentials: 'include' });
+				const data = await response.json();
+				if (!response.ok) return null;
+				if (data.error) return null;
+				return data;
+			} catch (error) {
+				console.error('Error fetching auth user:', error);
+				return null;
+			}
+		},
+		staleTime: Infinity, // Data fetched in App.jsx, so always use cache here
+	});
     const queryClient = useQueryClient();
 
 	const { mutate: deletePost, isPending } = useMutation({
 		mutationFn: async () => {
-			try {
-				const res = await fetch(`/api/posts/${post._id}`, {
-					method: "DELETE",
-				});
-				const data = await res.json();
-				if (!res.ok) throw new Error("Failed to delete post");
-               return data;
-
-			} catch (error) {
-				console.error(error);
-			}
+			const res = await fetch(`/api/posts/delete/${post._id}`, {
+				method: "DELETE",
+			});
+			const data = await res.json();
+			if (!res.ok) throw new Error(data.error || "Failed to delete post");
+			return data;
 		},
 		onSuccess: () => {
 			toast.success("Post deleted successfully");
 			queryClient.invalidateQueries({ queryKey: ["posts"] });
-		
+		},
+		onError: (error) => {
+			toast.error(error.message || "Failed to delete post");
 		}
 	});
 
-	const {mutate: likePost, isLoading: isLiking} = useMutation({
-		mutationFn: async () => {
-			try {
-				const res = await fetch(`/api/posts/like/${post._id}`, {
-					method: "POST",
-				});
-				const data = await res.json();
-				if (!res.ok) throw new Error("Failed to like post");
-				return data;
 
-			} catch (error) {
-				console.error(error);
-			}
+	const { mutate: likePost, isPending: isLiking } = useMutation({
+		mutationFn: async () => {
+			const res = await fetch(`/api/posts/like/${post._id}`, {
+				method: "POST",
+			});
+			const data = await res.json();
+			if (!res.ok) throw new Error(data.error || data.message || "Failed to like post");
+			return data;
 		},
 		onSuccess: (updatedLikes) => {
-			toast.success("Post liked successfully");
-			// queryClient.invalidateQueries({ queryKey: ["posts"] });
+			// Update the posts cache optimistically
 			queryClient.setQueryData(["posts"], (oldData) => {
 				if (!oldData) return oldData;
 				return oldData.map((p) => {
@@ -66,44 +73,42 @@ const Post = ({ post }) => {
 				});
 			});
 		},
-		onError: () => {
-			toast.error("Failed to like post");
+		onError: (error) => {
+			toast.error(error.message || "Failed to like post");
 		}
 	});
 
 	const {mutate: commentPost, isPending: isCommenting} = useMutation({
 		mutationFn: async () => {
-			try {
-				const res = await fetch(`/api/posts/comment/${post._id}`, {
-					method: "POST",
-					body: JSON.stringify({ text: comment }),
-					headers: {
-						"Content-Type": "application/json",
-					},
-				});
-				const data = await res.json();
-				if (!res.ok) throw new Error("Failed to comment on post");
-				return data;
-
-			} catch (error) {
-				console.error(error);
-			}
+			const res = await fetch(`/api/posts/comment/${post._id}`, {
+				method: "POST",
+				body: JSON.stringify({ text: comment }),
+				headers: {
+					"Content-Type": "application/json",
+				},
+			});
+			const data = await res.json();
+			if (!res.ok) throw new Error(data.error || data.message || "Failed to comment on post");
+			return data;
 		},
-		onSuccess: (newComment) => {
-			toast.success("Comment added successfully");
+		onSuccess: (updatedPost) => {
+			toast.success("Comment posted successfully");
 			setComment("");
+			// Update the posts cache with the new comment
 			queryClient.setQueryData(["posts"], (oldData) => {
 				if (!oldData) return oldData;
 				return oldData.map((p) => {
 					if (p._id === post._id) {
-						return { ...p, comments: [...p.comments, newComment] };
+						return updatedPost;
 					}
 					return p;
 				});
 			});
+			// Close the modal
+			document.getElementById(`comments_modal${post._id}`)?.close();
 		},
-		onError: () => {
-			toast.error("Failed to comment on post");
+		onError: (error) => {
+			toast.error(error.message || "Failed to post comment");
 		}
 	});
 
@@ -121,8 +126,11 @@ const Post = ({ post }) => {
 	const handlePostComment = (e) => {
 		e.preventDefault();
 		if (isCommenting) return;
+		if (!comment.trim()) {
+			toast.error("Comment cannot be empty");
+			return;
+		}
 		commentPost();
-		
 	};
 
 	const handleLikePost = () => {
@@ -220,8 +228,20 @@ const Post = ({ post }) => {
 											placeholder='Add a comment...'
 											value={comment}
 											onChange={(e) => setComment(e.target.value)}
+											onKeyDown={(e) => {
+												if (e.key === 'Enter' && !e.shiftKey) {
+													e.preventDefault();
+													handlePostComment(e);
+												}
+											}}
+											rows={1}
+											disabled={isCommenting}
 										/>
-										<button className='btn btn-primary rounded-full btn-sm text-white px-4'>
+										<button 
+											className='btn btn-primary rounded-full btn-sm text-white px-4'
+											type='submit'
+											disabled={isCommenting || !comment.trim()}
+										>
 											{isCommenting ? (
 												<LoadingSpinner size='md' />
 											) : (
@@ -234,9 +254,10 @@ const Post = ({ post }) => {
 									<button className='outline-none'>close</button>
 								</form>
 							</dialog>
-							<div className='flex gap-1 items-center group cursor-pointer'>
-								<BiRepost className='w-6 h-6  text-slate-500 group-hover:text-green-500' />
-								<span className='text-sm text-slate-500 group-hover:text-green-500'>0</span>
+							{/* Repost feature - coming soon */}
+							<div className='flex gap-1 items-center group cursor-not-allowed opacity-50'>
+								<BiRepost className='w-6 h-6 text-slate-500' />
+								<span className='text-sm text-slate-500'>0</span>
 							</div>
 							<div className='flex gap-1 items-center group cursor-pointer' onClick={handleLikePost}>
 								{isLiking && <LoadingSpinner size='sm' />}

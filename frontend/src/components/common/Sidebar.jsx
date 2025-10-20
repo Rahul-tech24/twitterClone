@@ -36,7 +36,22 @@ const Sidebar = () => {
 			toast.error(error.message || "Logout failed");
 		}
 	});
-	const { data:authUser } = useQuery({ queryKey: ["authUser"] });
+	const { data: authUser } = useQuery({
+		queryKey: ["authUser"],
+		queryFn: async () => {
+			try {
+				const response = await fetch('/api/auth/user', { credentials: 'include' });
+				const data = await response.json();
+				if (!response.ok) return null;
+				if (data.error) return null;
+				return data;
+			} catch (error) {
+				console.error('Error fetching auth user:', error);
+				return null;
+			}
+		},
+		staleTime: Infinity, // Data fetched in App.jsx, so always use cache here
+	});
  
 	return (
 		<div className='md:flex-[2_2_0] w-18 max-w-52'>

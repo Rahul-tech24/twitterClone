@@ -4,8 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import Posts from "../../components/common/Posts";
 import ProfileHeaderSkeleton from "../../components/skeletons/ProfileHeaderSkeleton";
 import EditProfileModal from "./EditProfileModal";
-
-import { POSTS } from "../../utils/db/dummy";
+import FollowersFollowingModal from "../../components/common/FollowersFollowingModal";
 
 import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
@@ -21,6 +20,8 @@ const ProfilePage = () => {
 	const [coverImg, setCoverImg] = useState(null);
 	const [profileImg, setProfileImg] = useState(null);
 	const [feedType, setFeedType] = useState("posts");
+	const [followModalOpen, setFollowModalOpen] = useState(false);
+	const [followModalType, setFollowModalType] = useState("followers");
 
 	const coverImgRef = useRef(null);
 	const profileImgRef = useRef(null);
@@ -28,7 +29,22 @@ const ProfilePage = () => {
 	const { username } = useParams();
 
 	const { follow, isPending } = useFollow();
-	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+	const { data: authUser } = useQuery({
+		queryKey: ["authUser"],
+		queryFn: async () => {
+			try {
+				const response = await fetch('/api/auth/user', { credentials: 'include' });
+				const data = await response.json();
+				if (!response.ok) return null;
+				if (data.error) return null;
+				return data;
+			} catch (error) {
+				console.error('Error fetching auth user:', error);
+				return null;
+			}
+		},
+		staleTime: Infinity, // Data fetched in App.jsx, so always use cache here
+	});
 
 	const {
 		data: user,
@@ -36,19 +52,17 @@ const ProfilePage = () => {
 		refetch,
 		isRefetching,
 	} = useQuery({
-		queryKey: ["userProfile"],
+		queryKey: ["userProfile", username],
 		queryFn: async () => {
-			try {
-				const res = await fetch(`/api/users/profile/${username}`);
-				const data = await res.json();
-				if (!res.ok) {
-					throw new Error(data.error || "Something went wrong");
-				}
-				return data;
-			} catch (error) {
-				throw new Error(error);
+			const res = await fetch(`/api/users/profile/${username}`);
+			const data = await res.json();
+			if (!res.ok) {
+				throw new Error(data.error || data.message || "User not found");
 			}
+			return data;
 		},
+		retry: 1,
+		enabled: !!username,
 	});
 
 	const { isUpdatingProfile, updateProfile } = useUpdateUserProfile();
@@ -78,7 +92,11 @@ const ProfilePage = () => {
 			<div className='flex-[4_4_0]  border-r border-gray-700 min-h-screen '>
 				{/* HEADER */}
 				{(isLoading || isRefetching) && <ProfileHeaderSkeleton />}
-				{!isLoading && !isRefetching && !user && <p className='text-center text-lg mt-4'>User not found</p>}
+				{!isLoading && !isRefetching && !user && (
+					<div className='text-center text-lg mt-4'>
+						<p>User not found</p>
+					</div>
+				)}
 				<div className='flex flex-col'>
 					{!isLoading && !isRefetching && user && (
 						<>
@@ -88,7 +106,9 @@ const ProfilePage = () => {
 								</Link>
 								<div className='flex flex-col'>
 									<p className='font-bold text-lg'>{user?.fullName}</p>
-									<span className='text-sm text-slate-500'>{POSTS?.length} posts</span>
+									<span className='text-sm text-slate-500'>
+										{user?.postCount !== undefined ? user.postCount : 0} {user?.postCount === 1 ? 'post' : 'posts'}
+									</span>
 								</div>
 							</div>
 							{/* COVER IMG */}
@@ -172,18 +192,15 @@ const ProfilePage = () => {
 								<div className='flex gap-2 flex-wrap'>
 									{user?.link && (
 										<div className='flex gap-1 items-center '>
-											<>
-												<FaLink className='w-3 h-3 text-slate-500' />
-												<a
-													href='https://youtube.com/@asaprogrammer_'
-													target='_blank'
-													rel='noreferrer'
-													className='text-sm text-blue-500 hover:underline'
-												>
-													{/* Updated this after recording the video. I forgot to update this while recording, sorry, thx. */}
-													{user?.link}
-												</a>
-											</>
+											<FaLink className='w-3 h-3 text-slate-500' />
+											<a
+												href={user.link.startsWith('http') ? user.link : `https://${user.link}`}
+												target='_blank'
+												rel='noreferrer'
+												className='text-sm text-blue-500 hover:underline'
+											>
+												{user.link}
+											</a>
 										</div>
 									)}
 									<div className='flex gap-2 items-center'>
@@ -192,11 +209,23 @@ const ProfilePage = () => {
 									</div>
 								</div>
 								<div className='flex gap-2'>
-									<div className='flex gap-1 items-center'>
+									<div 
+										className='flex gap-1 items-center cursor-pointer hover:underline'
+										onClick={() => {
+											setFollowModalType("following");
+											setFollowModalOpen(true);
+										}}
+									>
 										<span className='font-bold text-xs'>{user?.following.length}</span>
 										<span className='text-slate-500 text-xs'>Following</span>
 									</div>
-									<div className='flex gap-1 items-center'>
+									<div 
+										className='flex gap-1 items-center cursor-pointer hover:underline'
+										onClick={() => {
+											setFollowModalType("followers");
+											setFollowModalOpen(true);
+										}}
+									>
 										<span className='font-bold text-xs'>{user?.followers.length}</span>
 										<span className='text-slate-500 text-xs'>Followers</span>
 									</div>
@@ -228,6 +257,15 @@ const ProfilePage = () => {
 					<Posts feedType={feedType} username={username} userId={user?._id} />
 				</div>
 			</div>
+
+			{/* Followers/Following Modal */}
+			<FollowersFollowingModal
+				isOpen={followModalOpen}
+				onClose={() => setFollowModalOpen(false)}
+				username={username}
+				type={followModalType}
+				authUser={authUser}
+			/>
 		</>
 	);
 };

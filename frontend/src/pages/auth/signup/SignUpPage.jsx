@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import XSvg from "../../../components/svgs/X";
@@ -7,47 +7,49 @@ import { MdOutlineMail } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
 import { MdPassword } from "react-icons/md";
 import { MdDriveFileRenameOutline } from "react-icons/md";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
 const SignUpPage = () => {
-	const [formData, setFormData] = useState({
-		email: "",
-		username: "",
-		fullName: "",
-		password: "",
-	});
-	const { mutate, isError, error, isPending } = useMutation({
-		mutationFn: async ({email, username, fullName, password}) => {
-			const response = await fetch("/api/auth/signup", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ email, username, fullName, password }),
-			});
-			
-			const data = await response.json();
-			
-			if (!response.ok) {
-				throw new Error(data.error || data.message || "Something went wrong");
-			}
-			
-			return data;
-		},
-		onSuccess: () => {
-			toast.success("Account created successfully!");
-			// You can redirect to login or home page here
-		},
-		onError: (error) => {
-			toast.error(error.message);
-		},
-	});	
+       const [formData, setFormData] = useState({
+	       email: "",
+	       username: "",
+	       fullName: "",
+	       password: "",
+       });
+       const navigate = useNavigate();
+       const queryClient = useQueryClient();
+       const { mutate, isError, error, isPending } = useMutation({
+	       mutationFn: async ({email, username, fullName, password}) => {
+		       const response = await fetch("/api/auth/signup", {
+			       method: "POST",
+			       headers: {
+				       "Content-Type": "application/json",
+			       },
+			       credentials: "include",
+			       body: JSON.stringify({ email, username, fullName, password }),
+		       });
+		       const data = await response.json();
+		       if (!response.ok) {
+			       throw new Error(data.error || data.message || "Something went wrong");
+		       }
+		       return data;
+	       },
+	       onSuccess: () => {
+		       toast.success("Account created successfully!");
+		       setFormData({ email: "", username: "", fullName: "", password: "" });
+		       queryClient.invalidateQueries({ queryKey: ["authUser"] });
+		       navigate("/");
+	       },
+	       onError: (error) => {
+		       toast.error(error.message);
+	       },
+       });
 
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		mutate(formData);
-	};
+       const handleSubmit = (e) => {
+	       e.preventDefault();
+	       mutate(formData);
+       };
 
 
 	const handleInputChange = (e) => {

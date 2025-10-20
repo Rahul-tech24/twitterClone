@@ -13,7 +13,22 @@ const CreatePost = () => {
 
 	const imgRef = useRef(null);
 
-	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+	const { data: authUser } = useQuery({
+		queryKey: ["authUser"],
+		queryFn: async () => {
+			try {
+				const response = await fetch('/api/auth/user', { credentials: 'include' });
+				const data = await response.json();
+				if (!response.ok) return null;
+				if (data.error) return null;
+				return data;
+			} catch (error) {
+				console.error('Error fetching auth user:', error);
+				return null;
+			}
+		},
+		staleTime: Infinity, // Data fetched in App.jsx, so always use cache here
+	});
 	const queryClient = useQueryClient();
 
 	const { mutate: createPost, isPending, isError } = useMutation({
@@ -59,7 +74,7 @@ const CreatePost = () => {
 		<div className='flex p-4 items-start gap-4 border-b border-gray-700'>
 			<div className='avatar'>
 				<div className='w-8 rounded-full'>
-					<img src={authUser.profileImg || "/avatar-placeholder.png"} />
+					<img src={authUser?.profileImg || "/avatar-placeholder.png"} />
 				</div>
 			</div>
 			<form className='flex flex-col gap-2 w-full' onSubmit={handleSubmit}>
