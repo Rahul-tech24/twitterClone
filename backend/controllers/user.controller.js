@@ -164,21 +164,28 @@ const updateUser = async (req, res) => {
            }
 
            if (profileImg) {
-               if (user.profileImg) {
-                   await cloudinary.uploader.destroy(user.profileImg .split("/").pop().split(".")[0]);
+               try {
+                   if (user.profileImg) {
+                       await cloudinary.uploader.destroy(user.profileImg.split("/").pop().split(".")[0]);
+                   }
+                   const uploadedResponse = await cloudinary.uploader.upload(profileImg, { resource_type: "image", folder: "users" });
+                   profileImg = uploadedResponse.secure_url;
+               } catch (e) {
+                   console.error("Cloudinary upload (profileImg) failed:", e?.message || e);
+                   return res.status(400).json({ message: "Profile image upload failed", error: e?.message || "Cloudinary error" });
                }
-
-               const uploadedResponse = await cloudinary.uploader.upload(profileImg)
-               profileImg = uploadedResponse.secure_url;
-
            }
            if (coverImg) {
-               if (user.coverImg) {
-                   await cloudinary.uploader.destroy(user.coverImg .split("/").pop().split(".")[0]);
+               try {
+                   if (user.coverImg) {
+                       await cloudinary.uploader.destroy(user.coverImg.split("/").pop().split(".")[0]);
+                   }
+                   const uploadedResponse = await cloudinary.uploader.upload(coverImg, { resource_type: "image", folder: "users" });
+                   coverImg = uploadedResponse.secure_url;
+               } catch (e) {
+                   console.error("Cloudinary upload (coverImg) failed:", e?.message || e);
+                   return res.status(400).json({ message: "Cover image upload failed", error: e?.message || "Cloudinary error" });
                }
-               const uploadedResponse = await cloudinary.uploader.upload(coverImg)
-               coverImg = uploadedResponse.secure_url;
-            
            }
 
            user.username = username || user.username;

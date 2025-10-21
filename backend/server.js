@@ -23,9 +23,10 @@ cloudinary.config({
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(express.json({ limit: "5mb" })); // to parse req.body
-// limit shouldn't be too high to prevent DOS
-app.use(express.urlencoded({ extended: true })); // to parse form data(urlencoded)
+// Increase body limits to handle base64-encoded images (data URLs)
+app.use(express.json({ limit: "15mb" })); // to parse req.body
+// limit shouldn't be too high to prevent DOS, but 15mb is reasonable for images
+app.use(express.urlencoded({ extended: true, limit: "15mb" })); // to parse form data(urlencoded)
 
 app.use(cookieParser());
 
